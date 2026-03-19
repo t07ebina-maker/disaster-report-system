@@ -53,7 +53,7 @@
           <div class="section"><h3>2. 報告者名</h3><div class="field"><label for="reporterName">看護師長・副看護師長または勤務時間帯リーダーの氏名</label><input id="reporterName" class="input" type="text" maxlength="40"></div></div>
           <div class="section"><h3>3. 報告日時</h3><div class="field"><label for="reportedAt">送信時刻</label><input id="reportedAt" class="input" type="text" readonly></div></div>
           <div class="section"><h3>4. 負傷者の有無</h3><div id="injuredFlagGroup" class="radio-group"></div><div id="injuredBlock" class="hidden"><div class="field"><label for="injuredCount">負傷者数</label><input id="injuredCount" class="input" type="number" min="0" inputmode="numeric"></div><div class="field"><span class="label">重症度の概要（該当する区分にチェックし、状況を入力）</span><div class="check-group"><label class="option"><input type="checkbox" name="injuredSeverity" value="ただちに処置が必要"><span>ただちに処置が必要</span></label><label class="option"><input type="checkbox" name="injuredSeverity" value="処置は必要だが緊急でない"><span>処置は必要だが緊急でない</span></label><label class="option"><input type="checkbox" name="injuredSeverity" value="軽症"><span>軽症</span></label></div></div><div id="severityFields"></div></div></div>
-          <div class="section"><h3>5. 不明者の有無</h3><div id="missingFlagGroup" class="radio-group"></div><div id="missingBlock" class="field hidden"><label for="missingCount">不明者数</label><input id="missingCount" class="input" type="number" min="0" inputmode="numeric"></div></div>
+          <div class="section"><h3>5. 不明者の有無</h3><div id="missingFlagGroup" class="radio-group"></div><div id="missingBlock" class="hidden"><div class="field"><label for="missingCount">不明者数（合計）</label><input id="missingCount" class="input" type="number" min="0" inputmode="numeric"></div><div class="field"><span class="label">種別（複数選択可・人数を入力）</span><div class="check-group"><label class="option"><input type="checkbox" name="missingType" value="患者"><span>患者</span></label><label class="option"><input type="checkbox" name="missingType" value="付き添い（家族等）"><span>付き添い（家族等）</span></label><label class="option"><input type="checkbox" name="missingType" value="看護師"><span>看護師</span></label><label class="option"><input type="checkbox" name="missingType" value="看護補助者"><span>看護補助者</span></label><label class="option"><input type="checkbox" name="missingType" value="医師"><span>医師</span></label><label class="option"><input type="checkbox" name="missingType" value="事務・他"><span>事務・他</span></label></div></div><div id="missingTypeFields"></div></div></div>
           <div class="section"><h3>6. 建物・設備・医療機器の被災状況</h3><div id="damageFlagGroup" class="radio-group"></div><div id="damageBlock" class="hidden"><div class="field"><span class="label">被害分類</span><div class="check-group"><label class="option"><input type="checkbox" name="damageCategory" value="建物"><span>建物</span></label><label class="option"><input type="checkbox" name="damageCategory" value="設備"><span>設備</span></label><label class="option"><input type="checkbox" name="damageCategory" value="医療機器"><span>医療機器</span></label><label class="option"><input type="checkbox" name="damageCategory" value="その他"><span>その他</span></label></div></div><div id="damageFields"></div></div></div>
           <div class="section"><h3>7. 火災の有無</h3><div id="fireFlagGroup" class="radio-group"></div><div id="fireBlock" class="field hidden"><label for="fireStatus">現状</label><select id="fireStatus" class="select"><option value="">選択してください</option><option value="初期消火で鎮火">初期消火で鎮火</option><option value="対応中">対応中</option><option value="延焼中">延焼中</option></select></div></div>
           <div class="section"><h3>8. 職員の応援</h3><div id="supportFlagGroup" class="radio-group"></div><div id="supportBlock" class="hidden"><div class="grid2"><div class="field"><label for="support_doctor">医師（人）</label><input id="support_doctor" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div><div class="field"><label for="support_nurse">看護師（人）</label><input id="support_nurse" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div><div class="field"><label for="support_ce">CE（人）</label><input id="support_ce" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div><div class="field"><label for="support_other_count">その他（人）</label><input id="support_other_count" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div></div><div class="field"><label for="supportOtherLabel">その他職種名</label><input id="supportOtherLabel" class="input" type="text" maxlength="30"></div></div></div>
@@ -99,6 +99,7 @@
     const WARDS = ["東10階病棟","東9階病棟","東8階（HCU）","東7階病棟","東6階病棟","東5階（ICU）","西9階病棟","西8階病棟","西7階病棟","西6階病棟","西5階（手術室・カテーテル室）","西4階病棟","内視鏡放射線検査室","血液浄化センター","救急外来","外来","総合相談センター","化学療法室","その他"];
     const DAMAGE_CATEGORIES = ["建物","設備","医療機器","その他"];
     const SEVERITY_CATEGORIES = ["ただちに処置が必要","処置は必要だが緊急でない","軽症"];
+    const MISSING_TYPES = ["患者","付き添い（家族等）","看護師","看護補助者","医師","事務・他"];
     const state = {stepIndex:0,fireFlag:"",damageFlag:"",damagePhotoTaken:false,branchMode:"default"};
     const dom = {};
 
@@ -111,8 +112,9 @@
     });
 
     function cacheDom() {
-      ["actionScreen","formScreen","confirmScreen","completeScreen","actionHeader","progress","stepCard","stepNote","stepActions","actionBackButton","formBackButton","reportForm","wardName","otherWardBlock","otherWardName","reporterName","reportedAt","injuredFlagGroup","injuredBlock","injuredCount","severityFields","missingFlagGroup","missingBlock","missingCount","damageFlagGroup","damageBlock","damageFields","fireFlagGroup","fireBlock","fireStatus","supportFlagGroup","supportBlock","support_doctor","support_nurse","support_ce","support_other_count","supportOtherLabel","emptyBeds","availableBeds","notes","formError","confirmList","backToFormButton","confirmSubmitButton","completeTimestamp","photoReminder"].forEach(id => dom[id] = document.getElementById(id));
+      ["actionScreen","formScreen","confirmScreen","completeScreen","actionHeader","progress","stepCard","stepNote","stepActions","actionBackButton","formBackButton","reportForm","wardName","otherWardBlock","otherWardName","reporterName","reportedAt","injuredFlagGroup","injuredBlock","injuredCount","severityFields","missingFlagGroup","missingBlock","missingCount","missingTypeFields","damageFlagGroup","damageBlock","damageFields","fireFlagGroup","fireBlock","fireStatus","supportFlagGroup","supportBlock","support_doctor","support_nurse","support_ce","support_other_count","supportOtherLabel","emptyBeds","availableBeds","notes","formError","confirmList","backToFormButton","confirmSubmitButton","completeTimestamp","photoReminder"].forEach(id => dom[id] = document.getElementById(id));
       dom.injuredSeverityInputs = Array.from(document.querySelectorAll('input[name="injuredSeverity"]'));
+      dom.missingTypeInputs = Array.from(document.querySelectorAll('input[name="missingType"]'));
       dom.damageCategoryInputs = Array.from(document.querySelectorAll('input[name="damageCategory"]'));
     }
 
@@ -125,6 +127,7 @@
       radio(dom.supportFlagGroup,"supportFlag",["要","不要"]);
       dom.damageFields.innerHTML = DAMAGE_CATEGORIES.map(v => `<div class="field hidden" data-damage-field="${v}"><label for="damage_${v}">${v}の状況（30字以内）</label><input id="damage_${v}" class="input" type="text" maxlength="30"></div>`).join("");
       dom.severityFields.innerHTML = SEVERITY_CATEGORIES.map(v => `<div class="field hidden" data-severity-field="${esc(v)}"><label>${esc(v)}の状況（20字以内）</label><input class="input" type="text" maxlength="20" placeholder="例: 転倒・出血 3名"></div>`).join("");
+      dom.missingTypeFields.innerHTML = MISSING_TYPES.map(v => `<div class="field hidden" data-missing-type="${esc(v)}"><label>${esc(v)}（人数）</label><input class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div>`).join("");
     }
 
     function bind() {
@@ -213,7 +216,8 @@
       dom.otherWardBlock.classList.toggle("hidden", dom.wardName.value !== "その他"); if (dom.wardName.value !== "その他") dom.otherWardName.value = "";
       dom.injuredBlock.classList.toggle("hidden", injured !== "有"); if (injured !== "有") { dom.injuredCount.value = ""; dom.injuredSeverityInputs.forEach(i => i.checked = false); }
       dom.injuredSeverityInputs.forEach(i => { const field = document.querySelector(`[data-severity-field="${i.value}"]`); if (field) { const vis = injured === "有" && i.checked; field.classList.toggle("hidden", !vis); if (!vis) { const inp = field.querySelector("input"); if (inp) inp.value = ""; } } });
-      dom.missingBlock.classList.toggle("hidden", missing !== "有"); if (missing !== "有") dom.missingCount.value = "";
+      dom.missingBlock.classList.toggle("hidden", missing !== "有"); if (missing !== "有") { dom.missingCount.value = ""; dom.missingTypeInputs.forEach(i => i.checked = false); }
+      dom.missingTypeInputs.forEach(i => { const field = document.querySelector(`[data-missing-type="${i.value}"]`); if (field) { const vis = missing === "有" && i.checked; field.classList.toggle("hidden", !vis); if (!vis) { const inp = field.querySelector("input"); if (inp) inp.value = ""; } } });
       dom.damageBlock.classList.toggle("hidden", damage !== "有");
       dom.damageCategoryInputs.forEach(i => { const field = document.querySelector(`[data-damage-field="${i.value}"]`); field.classList.toggle("hidden", damage !== "有" || !i.checked); if (damage !== "有" || !i.checked) { const inp = field.querySelector("input"); if (inp) inp.value = ""; } });
       if (damage !== "有") dom.damageCategoryInputs.forEach(i => i.checked = false);
@@ -236,7 +240,7 @@
         {label:"2. 報告者名", value: dom.reporterName.value.trim(), urgent:false},
         {label:"3. 報告日時", value: dom.reportedAt.value, urgent:false},
         {label:"4. 負傷者の有無", value: checked("injuredFlag") === "有" ? injuredSummary() : "無", urgent: severities().includes("ただちに処置が必要")},
-        {label:"5. 不明者の有無", value: checked("missingFlag") === "有" ? `有（${dom.missingCount.value}名）` : "無", urgent:false},
+        {label:"5. 不明者の有無", value: checked("missingFlag") === "有" ? missingSummary() : "無", urgent:false},
         {label:"6. 設備被害", value: checked("damageFlag") === "有" ? damageSummary() : "無", urgent:false},
         {label:"7. 火災の有無", value: checked("fireFlag") === "有" ? `有（${dom.fireStatus.value}）` : "無", urgent: dom.fireStatus.value === "延焼中"},
         {label:"8. 職員の応援", value: checked("supportFlag") === "要" ? supportSummary() : "不要", urgent: checked("supportFlag") === "要"},
@@ -244,6 +248,16 @@
         {label:"10. その他・補足", value: dom.notes.value.trim() || "なし", urgent:false}
       ];
       dom.confirmList.innerHTML = items.map(item => `<div class="confirm-item ${item.urgent ? "urgent" : ""}"><div class="confirm-label">${esc(item.label)}</div><div>${esc(item.value)}</div></div>`).join("");
+    }
+
+    function missingSummary() {
+      const types = dom.missingTypeInputs.filter(i => i.checked).map(i => {
+        const inp = document.querySelector(`[data-missing-type="${i.value}"] input`);
+        const n = inp && inp.value ? `${inp.value}名` : "";
+        return n ? `${i.value}${n}` : i.value;
+      });
+      const typePart = types.length > 0 ? `（${types.join("・")}）` : "";
+      return `有（合計${dom.missingCount.value}名${typePart}）`;
     }
 
     function injuredSummary() {
