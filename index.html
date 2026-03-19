@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>災害時被災状況報告システム v13</title>
+  <style>
+    :root{--fz:18px;--red-bg:#FFEBEB;--red:#C0392B;--yel-bg:#FFFDE7;--yel:#F39C12;--grn-bg:#E8F5E9;--grn:#27AE60;--blue:#1F4E79;--line:#d7e0ea;--text:#223445;--muted:#627486;--urgent-bg:#fff1f0;--urgent:#b03a2e}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#edf4f8 0%,#e3edf4 100%);color:var(--text);font-family:"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;font-size:var(--fz);line-height:1.6}
+    button,input,select,textarea{font:inherit}.app{max-width:480px;margin:0 auto;min-height:100vh;padding:14px 14px 24px}
+    .screen{display:none;background:#fff;border-radius:28px;overflow:hidden;border:1px solid rgba(31,78,121,.08);box-shadow:0 16px 38px rgba(31,78,121,.12)}.screen.active{display:block}
+    .header{padding:18px;color:#fff}.header h1,.header h2{margin:0;font-size:1.28rem;line-height:1.4}.header p{margin:8px 0 0;opacity:.95}
+    .content{padding:18px}.progress{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.9);font-weight:700}
+    .card,.section{border-radius:24px;padding:18px 16px;margin-bottom:16px}.card{border:1px solid rgba(0,0,0,.06)}.section{border:1px solid var(--line)}
+    .card h3,.section h3{margin:0 0 10px;font-size:1.16rem;line-height:1.5}.section h3{color:var(--blue)}.card p,.section p{margin:0}
+    .field{margin-bottom:14px}.field:last-child{margin-bottom:0}.field label,.field .label{display:block;margin-bottom:8px;font-weight:700}
+    .input,.select,.textarea{width:100%;min-height:52px;border:2px solid var(--line);border-radius:16px;padding:12px 14px;background:#fff;color:var(--text)}.textarea{min-height:92px;resize:vertical}
+    .grid2,.actions,.radio-group,.check-group,.confirm-list{display:grid;gap:12px}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .action-nav{display:grid;grid-template-columns:1fr 2fr;gap:12px}
+    .option{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 12px;border:2px solid var(--line);border-radius:18px;background:#fff}.option input{width:24px;height:24px;margin:0;flex:0 0 auto}
+    .button{width:100%;min-height:56px;border:0;border-radius:18px;padding:14px 16px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:#fff}.secondary{background:#fff;color:var(--blue);border:2px solid var(--blue)}.alert{background:var(--red);color:#fff}
+    .note,.error,.summary,.confirm-item{padding:14px;margin-bottom:14px;border-radius:18px}.note{background:#f5f8fb;color:var(--muted)}.error{background:var(--urgent-bg);color:var(--urgent);font-weight:700}.summary{background:var(--grn-bg);border:1px solid rgba(39,174,96,.24)}.summary strong{display:block;margin-bottom:8px;font-size:1.06rem}
+    .confirm-item{background:#f8fbfd;border:1px solid var(--line)}.confirm-item.urgent{background:var(--urgent-bg);border-color:rgba(176,58,46,.22);color:var(--urgent)}.confirm-label{font-size:.92rem;font-weight:700;color:var(--muted);margin-bottom:4px}.confirm-item.urgent .confirm-label{color:var(--urgent)}
+    .hidden{display:none!important}.compact{font-size:.94rem;color:var(--muted)}@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+    .input.field-error,.select.field-error,.textarea.field-error{border-color:var(--urgent)!important}
+    .radio-group.field-error,.check-group.field-error{outline:2px solid var(--urgent);border-radius:16px;padding:4px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="actionScreen" class="screen active">
+      <div id="actionHeader" class="header"></div>
+      <div class="content">
+        <div id="progress" class="progress"></div>
+        <div id="stepCard" class="card"></div>
+        <div id="stepNote" class="note hidden"></div>
+        <div class="action-nav">
+          <button id="actionBackButton" type="button" class="button secondary hidden">戻る</button>
+          <div id="stepActions" class="actions"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="formScreen" class="screen">
+      <div class="header" style="background:#1F4E79;">
+        <h1>被災状況報告フォーム</h1>
+        <p>看護部内防災訓練用の入力プロトタイプです。</p>
+      </div>
+      <div class="content">
+        <div class="note">「物」に関わる詳細は、送信後にLINE WORKSの看護部トークルームで随時報告する想定です。</div>
+        <form id="reportForm" novalidate>
+          <div class="section"><h3>1. 部署名</h3><div class="field"><label for="wardName">部署名を選択してください</label><select id="wardName" class="select"></select></div><div id="otherWardBlock" class="field hidden"><label for="otherWardName">その他部署名</label><input id="otherWardName" class="input" type="text" maxlength="40"></div></div>
+          <div class="section"><h3>2. 報告者名</h3><div class="field"><label for="reporterName">看護師長・副看護師長または勤務時間帯リーダーの氏名</label><input id="reporterName" class="input" type="text" maxlength="40"></div></div>
+          <div class="section"><h3>3. 報告日時</h3><div class="field"><label for="reportedAt">送信時刻</label><input id="reportedAt" class="input" type="text" readonly></div></div>
+          <div class="section"><h3>4. 負傷者の有無</h3><div id="injuredFlagGroup" class="radio-group"></div><div id="injuredBlock" class="hidden"><div class="field"><label for="injuredCount">負傷者数</label><input id="injuredCount" class="input" type="number" min="0" inputmode="numeric"></div><div class="field"><span class="label">重症度の概要</span><div class="check-group"><label class="option"><input type="checkbox" name="injuredSeverity" value="ただちに処置が必要"><span>ただちに処置が必要</span></label><label class="option"><input type="checkbox" name="injuredSeverity" value="処置は必要だが緊急でない"><span>処置は必要だが緊急でない</span></label><label class="option"><input type="checkbox" name="injuredSeverity" value="軽症"><span>軽症</span></label></div></div><div class="field"><label for="injuredMemo">状況メモ</label><textarea id="injuredMemo" class="textarea" maxlength="50" placeholder="例：転倒あり、出血あり、歩行可能 など"></textarea></div></div></div>
+          <div class="section"><h3>5. 不明者の有無</h3><div id="missingFlagGroup" class="radio-group"></div><div id="missingBlock" class="field hidden"><label for="missingCount">不明者数</label><input id="missingCount" class="input" type="number" min="0" inputmode="numeric"></div></div>
+          <div class="section"><h3>6. 建物・設備・医療機器の被災状況</h3><div id="damageFlagGroup" class="radio-group"></div><div id="damageBlock" class="hidden"><div class="field"><span class="label">被害分類</span><div class="check-group"><label class="option"><input type="checkbox" name="damageCategory" value="建物"><span>建物</span></label><label class="option"><input type="checkbox" name="damageCategory" value="設備"><span>設備</span></label><label class="option"><input type="checkbox" name="damageCategory" value="医療機器"><span>医療機器</span></label><label class="option"><input type="checkbox" name="damageCategory" value="その他"><span>その他</span></label></div></div><div id="damageFields"></div></div></div>
+          <div class="section"><h3>7. 火災の有無</h3><div id="fireFlagGroup" class="radio-group"></div><div id="fireBlock" class="field hidden"><label for="fireStatus">現状</label><select id="fireStatus" class="select"><option value="">選択してください</option><option value="初期消火で鎮火">初期消火で鎮火</option><option value="対応中">対応中</option><option value="延焼中">延焼中</option></select></div></div>
+          <div class="section"><h3>8. 職員の応援</h3><div id="supportFlagGroup" class="radio-group"></div><div id="supportBlock" class="hidden"><div class="grid2"><div class="field"><label for="support_doctor">医師（人）</label><input id="support_doctor" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div><div class="field"><label for="support_nurse">看護師（人）</label><input id="support_nurse" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div><div class="field"><label for="support_ce">CE（人）</label><input id="support_ce" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div><div class="field"><label for="support_other_count">その他（人）</label><input id="support_other_count" class="input" type="number" min="0" inputmode="numeric" placeholder="0"></div></div><div class="field"><label for="supportOtherLabel">その他職種名</label><input id="supportOtherLabel" class="input" type="text" maxlength="30"></div></div></div>
+          <div class="section"><h3>9. 空床数・受け入れ可能ベッド数</h3><div class="grid2"><div class="field"><label for="emptyBeds">空床数（床）</label><input id="emptyBeds" class="input" type="number" min="0" inputmode="numeric"></div><div class="field"><label for="availableBeds">受け入れ可能ベッド数（床）</label><input id="availableBeds" class="input" type="number" min="0" inputmode="numeric"></div></div></div>
+          <div class="section"><h3>10. その他・補足</h3><div class="field"><label for="notes">必要な医療機器・病棟に不在中の患者のことなど（50字以内）</label><textarea id="notes" class="textarea" maxlength="50"></textarea></div></div>
+          <div id="formError" class="error hidden"></div>
+          <div class="action-nav">
+            <button id="formBackButton" type="button" class="button secondary">戻る</button>
+            <div class="actions"><button type="submit" class="button primary">確認する</button></div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="confirmScreen" class="screen">
+      <div class="header" style="background:#1F4E79;"><h2>入力内容確認</h2><p>送信前に内容を一覧で確認してください。</p></div>
+      <div class="content">
+        <div id="confirmList" class="confirm-list"></div>
+        <div class="actions"><button id="backToFormButton" type="button" class="button secondary">修正する</button><button id="confirmSubmitButton" type="button" class="button alert">送信する</button></div>
+      </div>
+    </section>
+
+    <section id="completeScreen" class="screen">
+      <div class="header" style="background:#27AE60;"><h2>送信完了</h2><p>看護部訓練用の完了画面です。</p></div>
+      <div class="content">
+        <div class="summary"><strong>送信完了しました。</strong><div>本部からの指示を待ってください。</div><div id="completeTimestamp" class="compact" style="margin-top:8px;"></div></div>
+        <div id="photoReminder" class="note hidden"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    /* ===== アクションカード画面 ===== */
+    const STEPS = [
+      {step:1,tone:"danger",title:"安全確保行動をとる",text:"まず自分自身と周囲の安全を確保してください。",buttons:[["完了","next","primary"]]},
+      {step:2,tone:"danger",title:"揺れが収まったら火災確認をする",text:"火元や煙を確認し、火災の有無を判断してください。",buttons:[["火災なし","fireNone","primary"],["火災あり","fireYes","alert"]]},
+      {step:3,tone:"caution",title:"自部署の安全確認を実施する",text:"①職員 ②患者/家族 ③設備/医療機器の順で確認してください。",buttons:[["完了","next","primary"]]},
+      {step:4,tone:"caution",title:"同一階の安全確認を実施する",text:"同一階の周辺部署にも危険がないか確認してください。",buttons:[["完了","next","primary"]]},
+      {step:5,tone:"caution",title:"状況確認を開始する",text:"人的被害の確認、連絡経路の確保、緊急点検の実施を進めてください。",buttons:[["完了","next","primary"]]},
+      {step:6,tone:"complete",title:"物的被害の確認・点検をする",text:"被害があれば写真を撮影してください。",buttons:[["被害なし","damageNone","secondary"],["被害あり＋写真撮影","damageYes","primary"]]},
+      {step:7,tone:"complete",title:"部署別状況報告書を作成・提出する",text:"「人」の概要を緊急報告するため、報告フォームへ進みます。",buttons:[["報告書を作成・送信する","openForm","primary"]]}
+    ];
+    const WARDS = ["東10階病棟","東9階病棟","東8階（HCU）","東7階病棟","東6階病棟","東5階（ICU）","西9階病棟","西8階病棟","西7階病棟","西6階病棟","西5階（手術室・カテーテル室）","西4階病棟","内視鏡放射線検査室","血液浄化センター","救急外来","外来","総合相談センター","化学療法室","その他"];
+    const DAMAGE_CATEGORIES = ["建物","設備","医療機器","その他"];
+    const state = {stepIndex:0,fireFlag:"",damageFlag:"",damagePhotoTaken:false,branchMode:"default"};
+    const dom = {};
+
+    document.addEventListener("DOMContentLoaded", () => {
+      cacheDom();
+      buildForm();
+      bind();
+      setReportedAt();
+      renderStep();
+    });
+
+    function cacheDom() {
+      ["actionScreen","formScreen","confirmScreen","completeScreen","actionHeader","progress","stepCard","stepNote","stepActions","actionBackButton","formBackButton","reportForm","wardName","otherWardBlock","otherWardName","reporterName","reportedAt","injuredFlagGroup","injuredBlock","injuredCount","missingFlagGroup","missingBlock","missingCount","damageFlagGroup","damageBlock","damageFields","fireFlagGroup","fireBlock","fireStatus","supportFlagGroup","supportBlock","support_doctor","support_nurse","support_ce","support_other_count","supportOtherLabel","emptyBeds","availableBeds","notes","formError","confirmList","backToFormButton","confirmSubmitButton","completeTimestamp","photoReminder"].forEach(id => dom[id] = document.getElementById(id));
+      dom.injuredSeverityInputs = Array.from(document.querySelectorAll('input[name="injuredSeverity"]'));
+      dom.damageCategoryInputs = Array.from(document.querySelectorAll('input[name="damageCategory"]'));
+    }
+
+    function buildForm() {
+      dom.wardName.innerHTML = `<option value="">選択してください</option>${WARDS.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}`;
+      radio(dom.injuredFlagGroup,"injuredFlag",["有","無"]);
+      radio(dom.missingFlagGroup,"missingFlag",["有","無"]);
+      radio(dom.damageFlagGroup,"damageFlag",["有","無"]);
+      radio(dom.fireFlagGroup,"fireFlag",["有","無"]);
+      radio(dom.supportFlagGroup,"supportFlag",["要","不要"]);
+      dom.damageFields.innerHTML = DAMAGE_CATEGORIES.map(v => `<div class="field hidden" data-damage-field="${v}"><label for="damage_${v}">${v}の状況（30字以内）</label><input id="damage_${v}" class="input" type="text" maxlength="30"></div>`).join("");
+    }
+
+    function bind() {
+      dom.reportForm.addEventListener("change", () => { syncConditional(); clearErrors(); });
+      dom.reportForm.addEventListener("submit", e => { e.preventDefault(); openConfirm(); });
+      dom.actionBackButton.addEventListener("click", goActionBack);
+      dom.formBackButton.addEventListener("click", () => {
+        show("action");
+        renderStep();
+      });
+      dom.backToFormButton.addEventListener("click", () => show("form"));
+      dom.confirmSubmitButton.addEventListener("click", () => { if (window.confirm("本当に送信しますか？\n送信後は修正できません。")) submitDone(); });
+    }
+
+    function renderStep() {
+      const s = STEPS[state.stepIndex];
+      const branchFire = s.step === 2 && state.branchMode === "fire";
+      const branchDamage = s.step === 6 && state.branchMode === "damage";
+      const title = branchFire ? "火災あり" : branchDamage ? "被害あり" : s.title;
+      const text = branchFire ? "院内規定に沿って以下を実施してください。①初期対応 ②応援要請 ③避難対応" : branchDamage ? "写真を撮影し、LINE WORKSの看護部トークルームに送信してください。（「物」に関わる詳細は随時報告します）" : s.text;
+      const buttons = (branchFire || branchDamage) ? [["完了　次へ進む","branchNext","primary"]] : s.buttons;
+      const theme = s.tone === "danger" ? ["var(--red)","var(--red-bg)"] : s.tone === "caution" ? ["var(--yel)","var(--yel-bg)"] : ["var(--grn)","var(--grn-bg)"];
+      dom.actionHeader.style.background = theme[0];
+      dom.actionHeader.innerHTML = `<h1>災害時アクションカード</h1><p>看護部内防災訓練で使用する説明用プロトタイプです。</p>`;
+      dom.progress.textContent = `Step ${s.step} / 7`;
+      dom.stepCard.style.background = theme[1];
+      dom.stepCard.innerHTML = `<h3>Step ${s.step}　${esc(title)}</h3><p>${esc(text)}</p>`;
+      dom.stepNote.classList.toggle("hidden", !(branchFire || branchDamage));
+      dom.stepNote.textContent = branchFire || branchDamage ? "完了したら次へ進んでください。" : "";
+      dom.actionBackButton.classList.toggle("hidden", state.stepIndex === 0 && state.branchMode === "default");
+      dom.stepActions.innerHTML = buttons.map(b => `<button type="button" class="button ${b[2]}" data-a="${b[1]}">${esc(b[0])}</button>`).join("");
+      dom.stepActions.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => onStep(b.dataset.a)));
+    }
+
+    function onStep(action) {
+      const s = STEPS[state.stepIndex];
+      if (s.step === 2) {
+        state.fireFlag = action === "fireYes" ? "有" : "無";
+        if (action === "fireYes") { state.branchMode = "fire"; renderStep(); return; }
+      }
+      if (s.step === 6) {
+        state.damageFlag = action === "damageYes" ? "有" : "無";
+        state.damagePhotoTaken = action === "damageYes";
+        if (action === "damageYes") { state.branchMode = "damage"; renderStep(); return; }
+      }
+      if (action === "branchNext") state.branchMode = "default";
+      if (s.step === 7 && action === "openForm") { openForm(); return; }
+      state.stepIndex = Math.min(state.stepIndex + 1, STEPS.length - 1);
+      renderStep();
+    }
+
+    function openForm() {
+      show("form");
+      setReportedAt();
+      syncRadio("fireFlag", state.fireFlag);
+      syncRadio("damageFlag", state.damageFlag);
+      syncConditional();
+    }
+
+    function goActionBack() {
+      if (state.branchMode !== "default") {
+        state.branchMode = "default";
+        renderStep();
+        return;
+      }
+      if (state.stepIndex <= 0) {
+        return;
+      }
+      state.stepIndex -= 1;
+      renderStep();
+    }
+
+    function show(name) {
+      dom.actionScreen.classList.toggle("active", name === "action");
+      dom.formScreen.classList.toggle("active", name === "form");
+      dom.confirmScreen.classList.toggle("active", name === "confirm");
+      dom.completeScreen.classList.toggle("active", name === "complete");
+    }
+
+    function radio(node, name, values) {
+      node.innerHTML = values.map(v => `<label class="option"><input type="radio" name="${name}" value="${esc(v)}"><span>${esc(v)}</span></label>`).join("");
+    }
+
+    function syncConditional() {
+      const injured = checked("injuredFlag"), missing = checked("missingFlag"), damage = checked("damageFlag"), fire = checked("fireFlag"), support = checked("supportFlag");
+      dom.otherWardBlock.classList.toggle("hidden", dom.wardName.value !== "その他"); if (dom.wardName.value !== "その他") dom.otherWardName.value = "";
+      dom.injuredBlock.classList.toggle("hidden", injured !== "有"); if (injured !== "有") { dom.injuredCount.value = ""; dom.injuredSeverityInputs.forEach(i => i.checked = false); }
+      dom.missingBlock.classList.toggle("hidden", missing !== "有"); if (missing !== "有") dom.missingCount.value = "";
+      dom.damageBlock.classList.toggle("hidden", damage !== "有");
+      dom.damageCategoryInputs.forEach(i => { const field = document.querySelector(`[data-damage-field="${i.value}"]`); field.classList.toggle("hidden", damage !== "有" || !i.checked); if (damage !== "有" || !i.checked) { const inp = field.querySelector("input"); if (inp) inp.value = ""; } });
+      if (damage !== "有") dom.damageCategoryInputs.forEach(i => i.checked = false);
+      dom.fireBlock.classList.toggle("hidden", fire !== "有"); if (fire !== "有") dom.fireStatus.value = "";
+      dom.supportBlock.classList.toggle("hidden", support !== "要"); if (support !== "要") ["support_doctor","support_nurse","support_ce","support_other_count","supportOtherLabel"].forEach(id => dom[id].value = "");
+    }
+
+    /* ===== 画面3 確認画面 ===== */
+    function openConfirm() {
+      const error = validate();
+      if (error) { dom.formError.textContent = error; dom.formError.classList.remove("hidden"); return; }
+      dom.formError.classList.add("hidden");
+      renderConfirm();
+      show("confirm");
+    }
+
+    function renderConfirm() {
+      const items = [
+        {label:"1. 部署名", value: dom.wardName.value === "その他" ? `その他（${dom.otherWardName.value.trim()}）` : dom.wardName.value, urgent:false},
+        {label:"2. 報告者名", value: dom.reporterName.value.trim(), urgent:false},
+        {label:"3. 報告日時", value: dom.reportedAt.value, urgent:false},
+        {label:"4. 負傷者の有無", value: checked("injuredFlag") === "有" ? `有（${dom.injuredCount.value}名 / ${severities().join("・")}）` : "無", urgent: severities().includes("ただちに処置が必要")},
+        {label:"5. 不明者の有無", value: checked("missingFlag") === "有" ? `有（${dom.missingCount.value}名）` : "無", urgent:false},
+        {label:"6. 設備被害", value: checked("damageFlag") === "有" ? damageSummary() : "無", urgent:false},
+        {label:"7. 火災の有無", value: checked("fireFlag") === "有" ? `有（${dom.fireStatus.value}）` : "無", urgent: dom.fireStatus.value === "延焼中"},
+        {label:"8. 職員の応援", value: checked("supportFlag") === "要" ? supportSummary() : "不要", urgent: checked("supportFlag") === "要"},
+        {label:"9. 空床数・受け入れ可能ベッド数", value: `${dom.emptyBeds.value}床 / ${dom.availableBeds.value}床`, urgent:false},
+        {label:"10. その他・補足", value: dom.notes.value.trim() || "なし", urgent:false}
+      ];
+      dom.confirmList.innerHTML = items.map(item => `<div class="confirm-item ${item.urgent ? "urgent" : ""}"><div class="confirm-label">${esc(item.label)}</div><div>${esc(item.value)}</div></div>`).join("");
+    }
+
+    function damageSummary() {
+      return dom.damageCategoryInputs.filter(i => i.checked).map(i => {
+        const inp = document.querySelector(`[data-damage-field="${i.value}"] input`);
+        return `${i.value}:${inp ? inp.value.trim() : ""}`;
+      }).join(" / ");
+    }
+
+    function supportSummary() {
+      const parts = [];
+      addPart(parts, "医師", dom.support_doctor.value);
+      addPart(parts, "看護師", dom.support_nurse.value);
+      addPart(parts, "CE", dom.support_ce.value);
+      addPart(parts, dom.supportOtherLabel.value.trim() || "その他", dom.support_other_count.value);
+      return parts.join(" / ");
+    }
+
+    function addPart(parts, label, value) { const n = Number(value) || 0; if (n > 0) parts.push(`${label} ${n}人`); }
+
+    /* ===== 画面4 送信完了画面 ===== */
+    function submitDone() {
+      dom.completeTimestamp.textContent = `送信時刻：${fmt(new Date())}`;
+      if (state.damagePhotoTaken || checked("damageFlag") === "有") {
+        dom.photoReminder.textContent = "Step6で撮影した写真をLINE WORKSの看護部トークルームに送信してください。";
+        dom.photoReminder.classList.remove("hidden");
+      } else {
+        dom.photoReminder.classList.add("hidden");
+        dom.photoReminder.textContent = "";
+      }
+      show("complete");
+    }
+
+    /* ===== バリデーション ===== */
+    function validate() {
+      clearErrors();
+      if (!dom.wardName.value) { markError(dom.wardName); return "部署名を選択してください。"; }
+      if (dom.wardName.value === "その他" && !dom.otherWardName.value.trim()) { markError(dom.otherWardName); return "その他部署名を入力してください。"; }
+      if (!dom.reporterName.value.trim()) { markError(dom.reporterName); return "報告者名を入力してください。"; }
+      if (!checked("injuredFlag")) { markError(dom.injuredFlagGroup); return "負傷者の有無を選択してください。"; }
+      if (checked("injuredFlag") === "有" && dom.injuredCount.value === "") { markError(dom.injuredCount); return "負傷者数を入力してください。"; }
+      if (checked("injuredFlag") === "有" && severities().length === 0) { markError(dom.injuredBlock.querySelector(".check-group")); return "負傷者の重症度を1つ以上選択してください。"; }
+      if (!checked("missingFlag")) { markError(dom.missingFlagGroup); return "不明者の有無を選択してください。"; }
+      if (checked("missingFlag") === "有" && dom.missingCount.value === "") { markError(dom.missingCount); return "不明者数を入力してください。"; }
+      if (!checked("damageFlag")) { markError(dom.damageFlagGroup); return "設備被害の有無を選択してください。"; }
+      if (checked("damageFlag") === "有" && !dom.damageCategoryInputs.some(i => i.checked)) { markError(dom.damageBlock.querySelector(".check-group")); return "設備被害がある場合は被害分類を1つ以上選択してください。"; }
+      if (checked("damageFlag") === "有") {
+        const missingCat = dom.damageCategoryInputs.find(i => i.checked && !document.querySelector(`[data-damage-field="${i.value}"] input`).value.trim());
+        if (missingCat) { markError(document.querySelector(`[data-damage-field="${missingCat.value}"] input`)); return "選択した設備被害の状況を入力してください。"; }
+      }
+      if (!checked("fireFlag")) { markError(dom.fireFlagGroup); return "火災の有無を選択してください。"; }
+      if (checked("fireFlag") === "有" && !dom.fireStatus.value) { markError(dom.fireStatus); return "火災の現状を選択してください。"; }
+      if (!checked("supportFlag")) { markError(dom.supportFlagGroup); return "職員応援の要否を選択してください。"; }
+      if (checked("supportFlag") === "要") {
+        const total = ["support_doctor","support_nurse","support_ce","support_other_count"].reduce((s,id) => s + (Number(dom[id].value) || 0), 0);
+        if (total <= 0) { ["support_doctor","support_nurse","support_ce","support_other_count"].forEach(id => markError(dom[id])); return "応援が必要な職種と人数を入力してください。"; }
+        if ((Number(dom.support_other_count.value) || 0) > 0 && !dom.supportOtherLabel.value.trim()) { markError(dom.supportOtherLabel); return "その他職種名を入力してください。"; }
+      }
+      if (dom.emptyBeds.value === "") { markError(dom.emptyBeds); return "空床数を入力してください。"; }
+      if (dom.availableBeds.value === "") { markError(dom.availableBeds); return "受け入れ可能ベッド数を入力してください。"; }
+      if (dom.notes.value.length > 50) { markError(dom.notes); return "その他・補足は50字以内で入力してください。"; }
+      return "";
+    }
+
+    function markError(el) { if (el) el.classList.add("field-error"); }
+    function clearErrors() { document.querySelectorAll(".field-error").forEach(el => el.classList.remove("field-error")); }
+
+    function checked(name) { const x = document.querySelector(`input[name="${name}"]:checked`); return x ? x.value : ""; }
+    function severities() { return dom.injuredSeverityInputs.filter(i => i.checked).map(i => i.value); }
+    function syncRadio(name, value) { if (!value) return; const x = document.querySelector(`input[name="${name}"][value="${value}"]`); if (x) x.checked = true; }
+    function setReportedAt() { dom.reportedAt.value = fmt(new Date()); }
+    function fmt(date) { return new Intl.DateTimeFormat("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(date).replace(/\//g,"-"); }
+    function esc(v) { return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+  </script>
+</body>
+</html>
